@@ -47,6 +47,39 @@ process_data <- function(input.data){
 #	print(jackstraw)
 #	elbow <- PCElbowPlot(object = seuratObj)
 #	print(elbow)
+	seuratObj <- FindClusters(object = seuratObj, reduction.type = "pca", dims.use = 1:10, resolution = 0.6, print.output = 0, save.SNN = TRUE)
+#	PrintFindClustersParams(object = seuratObj)
+
+
+	seuratObj <- RunTSNE(object = seuratObj, dims.use = 1:10, do.fast = TRUE)
+	TSNEPlot(object = seuratObj)
+	
+# # find all markers of cluster 1
+# cluster1.markers <- FindMarkers(object = seuratObj, ident.1 = 1, min.pct = 0.25)
+# print(x = head(x = cluster1.markers, n = 5))
+# # find all markers distinguishing cluster 5 from clusters 0 and 3
+# cluster5.markers <- FindMarkers(object = seuratObj, ident.1 = 5, ident.2 = c(0, 3), 
+#     min.pct = 0.25)
+# print(x = head(x = cluster5.markers, n = 5))
+# # find markers for every cluster compared to all remaining cells, report
+# # only the positive ones
+# seuratObj.markers <- FindAllMarkers(object = seuratObj, only.pos = TRUE, min.pct = 0.25, 
+#     thresh.use = 0.25)
+# seuratObj.markers %>% group_by(cluster) %>% top_n(2, avg_logFC)
+# cluster1.markers <- FindMarkers(object = seuratObj, ident.1 = 0, thresh.use = 0.25, 
+#     test.use = "roc", only.pos = TRUE)
+# top10 <- seuratObj.markers %>% group_by(cluster) %>% top_n(10, avg_logFC)
+# 
+# classifier_input_x = t(seuratObj@data)
+# classifier_input_x
+# classifier_input_y = as.factor(as.numeric(seuratObj@ident))
+# trained_classifier = randomForest(x = as.matrix(classifier_input_x) , y=factor(classifier_input_y) , importance = TRUE )
+# trained_classifier 
+# ranked_list = trained_classifier$importance[order(-trained_classifier$importance[,'MeanDecreaseAccuracy']),]
+# dput(rownames(ranked_list)[1:300]) 
+# 
+# ### end of cell 1
+
 }
 
 # #' From https://github.com/broadinstitute/inferCNV/blob/master/scripts/inferCNV.R
