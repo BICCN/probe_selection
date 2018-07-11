@@ -52,11 +52,11 @@ process_data <- function(input.data){
 
 
 	seuratObj <- RunTSNE(object = seuratObj, dims.use = 1:10, do.fast = TRUE)
-	TSNEPlot(object = seuratObj)
+#	TSNEPlot(object = seuratObj)
 	
 # # find all markers of cluster 1
-# cluster1.markers <- FindMarkers(object = seuratObj, ident.1 = 1, min.pct = 0.25)
-# print(x = head(x = cluster1.markers, n = 5))
+ cluster1.markers <- FindMarkers(object = seuratObj, ident.1 = 1, min.pct = 0.25)
+ print(x = head(x = cluster1.markers, n = 5))
 # # find all markers distinguishing cluster 5 from clusters 0 and 3
 # cluster5.markers <- FindMarkers(object = seuratObj, ident.1 = 5, ident.2 = c(0, 3), 
 #     min.pct = 0.25)
