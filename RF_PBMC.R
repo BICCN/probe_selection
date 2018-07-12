@@ -4,15 +4,17 @@
 # Load libraries
 suppressPackageStartupMessages(library(optparse))
 suppressPackageStartupMessages(library(logging))
-suppressPackageStartupMessages(library(Seurat))
 suppressPackageStartupMessages(library(dplyr))
 suppressPackageStartupMessages(library(randomForest))
- 
+suppressPackageStartupMessages(library(Seurat))
 
+ 
+# process_data function follows Seurat tutorial for processing PBMC data set made available by 10x Genomics
+# dataset https://s3-us-west-2.amazonaws.com/10x.files/samples/cell/pbmc3k/pbmc3k_filtered_gene_bc_matrices.tar.gz
+# Seurat tutorial https://satijalab.org/seurat/pbmc3k_tutorial.html
 process_data <- function(input.data){
 	dense.size <- object.size(x = as.matrix(x = input.data))
 	print(dense.size)
-# is ARGUMENT needed for min.cells, min.genes, project name
 	seuratObj <- CreateSeuratObject(raw.data = input.data, min.cells = 3, min.genes = 200, project = "10X_data")
 	print(seuratObj)
 	mito.genes <- grep(pattern = "^MT-", x = rownames(x = seuratObj@data), value = TRUE)
@@ -42,42 +44,34 @@ process_data <- function(input.data){
 	print(elbow)
 	seuratObj <- FindClusters(object = seuratObj, reduction.type = "pca", dims.use = 1:10, resolution = 0.6, print.output = 0, save.SNN = TRUE)
 	PrintFindClustersParams(object = seuratObj)
-
-
 	seuratObj <- RunTSNE(object = seuratObj, dims.use = 1:10, do.fast = TRUE)
 	TSNEPlot(object = seuratObj)
-	
-# # find all markers of cluster 1
- cluster1.markers <- FindMarkers(object = seuratObj, ident.1 = 1, min.pct = 0.25)
- print(x = head(x = cluster1.markers, n = 5))
-# # find all markers distinguishing cluster 5 from clusters 0 and 3
- cluster5.markers <- FindMarkers(object = seuratObj, ident.1 = 5, ident.2 = c(0, 3), min.pct = 0.25)
- print(x = head(x = cluster5.markers, n = 5))
-# # find markers for every cluster compared to all remaining cells, report
-# # only the positive ones
- seuratObj.markers <- FindAllMarkers(object = seuratObj, only.pos = TRUE, min.pct = 0.25, thresh.use = 0.25)
-seuratObj.markers %>% group_by(cluster) %>% top_n(2, avg_logFC)
-cluster1.markers <- FindMarkers(object = seuratObj, ident.1 = 0, thresh.use = 0.25, test.use = "roc", only.pos = TRUE)
-top10 <- seuratObj.markers %>% group_by(cluster) %>% top_n(10, avg_logFC)
-# 
-classifier_input_x = t(seuratObj@data)
-print(classifier_input_x)
-classifier_input_y = as.factor(as.numeric(seuratObj@ident))
-trained_classifier = randomForest(x = as.matrix(classifier_input_x) , y=factor(classifier_input_y) , importance = TRUE )
-print(trained_classifier) 
-ranked_list = trained_classifier$importance[order(-trained_classifier$importance[,'MeanDecreaseAccuracy']),]
-dput(rownames(ranked_list)[1:300]) 
-# 
-# ### end of cell 1
+	# find all markers of cluster 1
+ 	cluster1.markers <- FindMarkers(object = seuratObj, ident.1 = 1, min.pct = 0.25)
+	print(x = head(x = cluster1.markers, n = 5))
+	# find all markers distinguishing cluster 5 from clusters 0 and 3
+ 	cluster5.markers <- FindMarkers(object = seuratObj, ident.1 = 5, ident.2 = c(0, 3), min.pct = 0.25)
+ 	print(x = head(x = cluster5.markers, n = 5))
+	# find markers for every cluster compared to all remaining cells, report
+	# only the positive ones
+	seuratObj.markers <- FindAllMarkers(object = seuratObj, only.pos = TRUE, min.pct = 0.25, thresh.use = 0.25)
+	seuratObj.markers %>% group_by(cluster) %>% top_n(2, avg_logFC)
+	cluster1.markers <- FindMarkers(object = seuratObj, ident.1 = 0, thresh.use = 0.25, test.use = "roc", only.pos = TRUE)
+	top10 <- seuratObj.markers %>% group_by(cluster) %>% top_n(10, avg_logFC)
+	return(seuratObj)
+}
 
-# cell3
-dput(rownames(ranked_list)[1:300]) 
+classify_data <- function(seuratObj){
+	classifier_input_x = t(seuratObj@data)
+	print(classifier_input_x)
+	classifier_input_y = as.factor(as.numeric(seuratObj@ident))
+	trained_classifier = randomForest(x = as.matrix(classifier_input_x) , y=factor(classifier_input_y) , importance = TRUE )
+	print(trained_classifier) 
+	ranked_list = trained_classifier$importance[order(-trained_classifier$importance[,'MeanDecreaseAccuracy']),]
+	dput(rownames(ranked_list)[1:300]) 
+	FINAL_LIST = rownames(ranked_list)[1:100]
 
-# cell4
-FINAL_LIST = rownames(ranked_list)[1:100]
-
-# cell5
-write.table(FINAL_LIST, file='FINAL_LIST.tsv', quote=FALSE, sep='\t', row.names = FALSE , col.names = TRUE )
+	write.table(FINAL_LIST, file='FINAL_LIST.tsv', quote=FALSE, sep='\t', row.names = FALSE , col.names = TRUE )
 }
 
 
@@ -119,3 +113,5 @@ pdf("output.pdf")
 procd_data <- process_data(tenX.data)
 dev.off()
 
+# classify data
+classify_data(procd_data)
