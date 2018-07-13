@@ -32,8 +32,8 @@ process_data <- function(input.data){
 	seuratObj <- ScaleData(object = seuratObj, vars.to.regress = c("nUMI", "percent.mito"))
 	seuratObj <- RunPCA(object = seuratObj, pc.genes = seuratObj@var.genes, do.print = TRUE, pcs.print = 1:5, genes.print = 5)
 	PrintPCA(object = seuratObj, pcs.print = 1:5, genes.print = 5, use.full = FALSE)
-    viz <- VizPCA(object = seuratObj, pcs.use = 1:2)
-    print(viz)
+	viz <- VizPCA(object = seuratObj, pcs.use = 1:2)
+	print(viz)
 	pca <- PCAPlot(object = seuratObj, dim.1 = 1, dim.2 = 2)
 	seuratObj <- ProjectPCA(object = seuratObj, do.print = FALSE)
 	seuratObj <- JackStraw(object = seuratObj, num.replicate = 100, display.progress = FALSE)
@@ -47,11 +47,11 @@ process_data <- function(input.data){
 	seuratObj <- RunTSNE(object = seuratObj, dims.use = 1:10, do.fast = TRUE)
 	TSNEPlot(object = seuratObj)
 	# find all markers of cluster 1
- 	cluster1.markers <- FindMarkers(object = seuratObj, ident.1 = 1, min.pct = 0.25)
+	cluster1.markers <- FindMarkers(object = seuratObj, ident.1 = 1, min.pct = 0.25)
 	print(x = head(x = cluster1.markers, n = 5))
 	# find all markers distinguishing cluster 5 from clusters 0 and 3
- 	cluster5.markers <- FindMarkers(object = seuratObj, ident.1 = 5, ident.2 = c(0, 3), min.pct = 0.25)
- 	print(x = head(x = cluster5.markers, n = 5))
+	cluster5.markers <- FindMarkers(object = seuratObj, ident.1 = 5, ident.2 = c(0, 3), min.pct = 0.25)
+	print(x = head(x = cluster5.markers, n = 5))
 	# find markers for every cluster compared to all remaining cells, report
 	# only the positive ones
 	seuratObj.markers <- FindAllMarkers(object = seuratObj, only.pos = TRUE, min.pct = 0.25, thresh.use = 0.25)
@@ -61,6 +61,8 @@ process_data <- function(input.data){
 	return(seuratObj)
 }
 
+# generate random forest classifier 
+# save in tsv file - gene names for top 100 factors from the classification model in order of importance
 classify_data <- function(seuratObj){
 	classifier_input_x = t(seuratObj@data)
 	print(classifier_input_x)
@@ -81,7 +83,7 @@ pargs <- optparse::OptionParser(usage=paste("%prog [options]",
                                             "--input_dir directory"))
 
 
-
+# input (string) path to Cell Ranger output directory
 pargs <- optparse::add_option(pargs, c("--input_dir"),
                               type="character",
                               action="store",
@@ -105,7 +107,7 @@ if(!file.exists(args_parsed$input_dir[1])){
 }
 
 
-# # Manage inputs
+# Manage inputs
 tenX.data <- Read10X( data.dir = args_parsed$input_dir[1])
 
 # process data
