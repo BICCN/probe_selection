@@ -22,10 +22,10 @@ process_data <- function(input.data){
                                   project = "10X_data")
   #TODO use logging instead of print statements
   print(seuratObj)
-  mito.genes <- grep(pattern = "^MT-", x = rownames(x = seuratObj@data), value = TRUE)
   
   #TODO break out filtering steps to separate function
   #TODO parameterize low.thresholds and high.thresholds
+  mito.genes <- grep(pattern = "^MT-", x = rownames(x = seuratObj@data), value = TRUE)
   percent.mito <- Matrix::colSums(seuratObj@raw.data[mito.genes, ])/Matrix::colSums(seuratObj@raw.data)
   seuratObj <- AddMetaData(object = seuratObj, metadata = percent.mito, 
                            col.name = "percent.mito")
@@ -134,8 +134,15 @@ pargs <- optparse::add_option(pargs, c("--input_dir"),
                                   "Expected format is 10x Genomics CellRanger pipeline", 
                                   "Filtered gene-barcode matrices MEX output directory",
                                   "[Default %default][REQUIRED]"))
-
-
+                              
+# TODO - code to save object not yet implemented
+# pargs <- optparse::add_option(pargs, c("--save_Seurat_object"),
+#                               type="logical",
+#                               action="store_true",
+#                               default=FALSE,
+#                               dest="save",
+#                               metavar="save",
+#                               help="Save resulting Seurat object as probe_selection.Robj")                            
 
 args_parsed <- optparse::parse_args(pargs)
 
