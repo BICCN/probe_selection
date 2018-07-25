@@ -104,6 +104,7 @@ classify_data <- function(seuratObj){
   classifier_input_x = t(seuratObj@data)
   print(classifier_input_x)
   classifier_input_y = as.factor(as.numeric(seuratObj@ident))
+  set.seed(1)
   trained_classifier = randomForest(x = as.matrix(classifier_input_x) , 
                                     y=factor(classifier_input_y) , importance = TRUE )
   print(trained_classifier) 
