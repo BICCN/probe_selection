@@ -87,26 +87,11 @@ process_data <- function(input.data){
   TSNEPlot(object = seuratObj)
   
   #TODO parameterize thresh.use
-  #TODO comment on (and/or parameterize) cluster choice rationale below
-  # find all markers of cluster 1
-  cluster1.markers <- FindMarkers(object = seuratObj, ident.1 = 1, 
-                                  min.pct = 0.25)
-  print(x = head(x = cluster1.markers, n = 5))
-  # find all markers distinguishing cluster 5 from clusters 0 and 3
-  cluster5.markers <- FindMarkers(object = seuratObj, ident.1 = 5, 
-                                  ident.2 = c(0, 3), min.pct = 0.25)
-  print(x = head(x = cluster5.markers, n = 5))
   # find markers for every cluster compared to all remaining cells, report
   # only the positive ones
-  #TODO thresh.use as optional argument
   seuratObj.markers <- FindAllMarkers(object = seuratObj, only.pos = TRUE, 
                                       min.pct = 0.25, thresh.use = 0.25)
   seuratObj.markers %>% group_by(cluster) %>% top_n(2, avg_logFC)
-  cluster1.markers <- FindMarkers(object = seuratObj, ident.1 = 0, 
-                                  thresh.use = 0.25, 
-                                  test.use = "roc", only.pos = TRUE)
-#TODO check if following is used elsewhere before deleting
-#top10 <- seuratObj.markers %>% group_by(cluster) %>% top_n(10, avg_logFC)
   return(seuratObj)
 }
 
