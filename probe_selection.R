@@ -449,5 +449,6 @@ report_runtime_variables(args)
 logging::loginfo(paste("Results in FINAL_LIST.tsv, plot.pdf and output.txt"))
 
 #reset output redirection
-dev.off()
 sink()
+dev.off()
+
