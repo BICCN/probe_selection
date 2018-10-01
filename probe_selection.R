@@ -264,7 +264,7 @@ pargs <- optparse::add_option(pargs, c("--seed"),
             type = "integer",
             default = 1,
             action = "store",
-            dest = "min_cells",
+            dest = "seed",
             help = paste("Set seed for Random Forest Classifier generation",
                          "to enable reproducible behavior",
                          "[Default %default]"))
