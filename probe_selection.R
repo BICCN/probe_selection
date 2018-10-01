@@ -61,16 +61,16 @@ classify_data <- function(seuratObj){
 }
 
 
-output_gene_names <- function(trained_classifier, nGenes) {
+output_gene_names <- function(trained_classifier, nGenes, filename) {
 # Save gene names for top 100 factors from the classification model
 # in order of importance as tsv file
   ranked_list <- trained_classifier$importance[order(
     -trained_classifier$importance[, "MeanDecreaseAccuracy"]), ]
 
   dput(rownames(ranked_list)[1:nGenes])
-  FINAL_LIST <- rownames(ranked_list)[1:nGenes]
+  top_markers <- rownames(ranked_list)[1:nGenes]
 
-  write.table(FINAL_LIST, file = "FINAL_LIST.tsv", quote = FALSE, sep = "\t",
+  write.table(top_markers, file = filename, quote = FALSE, sep = "\t",
               row.names = FALSE, col.names = TRUE )
 }
 
@@ -105,8 +105,8 @@ filter_cells <- function(seuratObj, filt_genes_low, filt_genes_high,
   GenePlot(object = seuratObj, gene1 = "nUMI", gene2 = "nGene")
 
 # Filter out cells that have unique gene counts over 2,500 or less than
-# 200 (defaults) Note that low.thresholds and high.thresholds are used 
-# to define a 'gate'.  -Inf and Inf should be used if you don't want a 
+# 200 (defaults) Note that low.thresholds and high.thresholds are used
+# to define a 'gate'.  -Inf and Inf should be used if you don't want a
 # lower or upper threshold.
   seuratObj <- FilterCells(object = seuratObj, subset.names =
                            c("nGene", "percent.mito"),
@@ -181,7 +181,7 @@ find_all_markers <- function(seuratObj, logfc_threshold){
 # only the positive ones
   seuratObj.markers <- FindAllMarkers(object = seuratObj, only.pos = TRUE,
                                       min.pct = 0.25,
-                                      logfc_threshold = logfc_threshold)
+                                      thresh.use = logfc_threshold)
   seuratObj.markers %>% group_by(cluster) %>% top_n(2, avg_logFC)
   return(seuratObj)
 }
@@ -201,127 +201,46 @@ pargs <- optparse::add_option(pargs, c("--input_dir"),
                          "Expected format is 10x Genomics CellRanger pipeline",
                          "filtered gene-barcode matrices MEX output directory",
                          "[Default %default][REQUIRED]"))
-                         
-pargs <- optparse::add_option(pargs, c("--min_cells"),
-            type = "integer",
-            default = 3,
-            action = "store",
-            dest = "min_cells",
-            help = paste("When filtering, include genes with detected",
-                         "expression in at least this many cells.",
-                         "[Default %default]"))
 
-pargs <- optparse::add_option(pargs, c("--min_genes"),
-            type = "integer",
-            default = 200,
-            action = "store",
-            dest = "min_genes",
-            help = paste("When filtering, include genes where",
-                        "at least this many genes are detected.",
-                         "[Default %default]"))
-
-pargs <- optparse::add_option(pargs, c("--filter_genes_low_threshold"),
-            type = "double",
-            default = 200,
-            action = "store",
-            dest = "filt_genes_low",
-            help = paste("Cell filtering: low cutoff for number of genes.",
-                         "[Default %default]"))
-
-pargs <- optparse::add_option(pargs, c("--filter_genes_high_threshold"),
-            type = "double",
-            default = 2500,
-            action = "store",
-            dest = "filt_genes_high",
-            help = paste("Cell filtering: high cutoff for number of genes.",
-                         "[Default %default]"))
-
-pargs <- optparse::add_option(pargs, c("--filter_mito_low_threshold"),
-            type = "double",
-            default = -Inf,
-            action = "store",
-            dest = "filt_mito_low",
-            help = paste("Cell filtering: low cutoff for",
-                         "percent mitochondrial genes.",
-                         "[Default %default]"))
-
-pargs <- optparse::add_option(pargs, c("--filter_mito_high_threshold"),
-            type = "double",
-            default = 0.05,
-            action = "store",
-            dest = "filt_mito_high",
-            help = paste("Cell filtering: high cutoff for",
-                         "percent mitochondrial genes.",
-                         "[Default %default]"))
-
-pargs <- optparse::add_option(pargs, c("--x_low_cutoff"),
-            type = "double",
-            default = 0.0125,
-            action = "store",
-            dest = "x_low_cutoff",
-            help = paste("Find Variable Genes: Bottom cutoff on x-axis",
-                         "for identifying variable genes.",
-                         "[Default %default]"))
-
-pargs <- optparse::add_option(pargs, c("--x_high_cutoff"),
-            type = "double",
-            default = 3,
-            action = "store",
-            dest = "x_high_cutoff",
-            help = paste("Find Variable Genes: Top cutoff on x-axis",
-                         "for identifying variable genes.",
-                         "[Default %default]"))
-
-pargs <- optparse::add_option(pargs, c("--y_low_cutoff"),
-            type = "double",
-            default = 0.5,
-            action = "store",
-            dest = "y_low_cutoff",
-            help = paste("Find Variable Genes: Bottom cutoff on y-axis",
-                         "for identifying variable genes.",
-                         "[Default %default]"))
-
-pargs <- optparse::add_option(pargs, c("--pcs_print"),
+pargs <- optparse::add_option(pargs, c("--plotfile"),
             type = "character",
-            default = "1:5",
+            default = "ps_plots.pdf",
             action = "store",
-            dest = "pcs_print",
-            help = paste("Principle components to print genes for.",
+            dest = "plotfile",
+            help = paste("Filename for plotted output.",
                          "[Default %default]"))
 
-pargs <- optparse::add_option(pargs, c("--genes_print"),
-            type = "integer",
-            default = 5,
+pargs <- optparse::add_option(pargs, c("--stdoutfile"),
+            type = "character",
+            default = "ps_stdout.txt",
             action = "store",
-            dest = "genes_print",
-            help = paste("Number of genes to print for",
-                         "each principle component.",
+            dest = "stdoutfile",
+            help = paste("Filename for messages captured from stdout.",
                          "[Default %default]"))
                          
+pargs <- optparse::add_option(pargs, c("--outputfile"),
+            type = "character",
+            default = "FINAL_LIST.tsv",
+            action = "store",
+            dest = "outputfile",
+            help = paste("Filename for top markers output.",
+                         "[Default %default]"))
+                         
+pargs <- optparse::add_option(pargs, c("--seurat_object"),
+            type = "character",
+            default = NULL,
+            action = "store",
+            dest = "save_obj",
+            help = paste("Filename for resulting Seurat object",
+                        "[Default Seurat object not saved]"))
+
 pargs <- optparse::add_option(pargs, c("--run_jackstraw"),
             type = "logical",
             default = FALSE,
             action = "store",
             dest = "run_js",
-            help = paste("This argument controls jackstraw plotting.",
-                         "Please note this option increases runtime.",
-                         "[Default %default]"))
-                         
-pargs <- optparse::add_option(pargs, c("--jackstraw_replicates"),
-            type = "integer",
-            default = 100,
-            action = "store",
-            dest = "jackstraw_repl",
-            help = paste("Number of replicate samplings to perform",
-                         "for JackStraw.",
-                         "[Default %default]"))
-
-pargs <- optparse::add_option(pargs, c("--jackstraw_pcs"),
-            type = "character",
-            default = "1:12",
-            action = "store",
-            dest = "jackstraw_pcs",
-            help = paste("Number of PCs to compute significance for.",
+            help = paste("Control jackstraw plotting.",
+                         "Please note enabling this option increases runtime.",
                          "[Default %default]"))
 
 pargs <- optparse::add_option(pargs, c("--run_elbow_plot"),
@@ -332,33 +251,6 @@ pargs <- optparse::add_option(pargs, c("--run_elbow_plot"),
             help = paste("This argument controls elbow plotting.",
                          "[Default %default]"))
 
-pargs <- optparse::add_option(pargs, c("--dims_use"),
-            type = "character",
-            default = "1:10",
-            action = "store",
-            dest = "dims_use",
-            help = paste("A vector of dimensions to use for the SNN graph.",
-                         "[Default %default]"))
-
-pargs <- optparse::add_option(pargs, c("--logfc_threshold"),
-            type = "double",
-            default = 0.25,
-            action = "store",
-            dest = "logfc_threshold",
-            help = paste("Limit testing to genes with average of at least",
-                         "X-fold difference. Increasing logfc.threshold",
-                         "speeds up the function, but can miss weaker signals",
-                         "[Default %default]"))
-
-pargs <- optparse::add_option(pargs, c("--resolution"),
-            type = "double",
-            default = 0.6,
-            action = "store",
-            dest = "resolution",
-            help = paste("Value of the resolution parameter, use a value above",
-                         "(below) 1.0 if you want to obtain a larger",
-                         "(smaller) number of communities.[Default %default]"))
-
 pargs <- optparse::add_option(pargs, c("--num_genes"),
             type = "integer",
             default = 100,
@@ -368,13 +260,160 @@ pargs <- optparse::add_option(pargs, c("--num_genes"),
                          "classification model.",
                          "[Default %default]"))
 
-pargs <- optparse::add_option(pargs, c("--save_seurat_object"),
-            type = "logical",
+pargs <- optparse::add_option(pargs, c("--seed"),
+            type = "integer",
+            default = 1,
             action = "store",
-            default = FALSE,
-            dest = "save_obj",
-            help = paste("Save resulting Seurat object as",
-                         "probe_selection.rds [Default %default]"))
+            dest = "min_cells",
+            help = paste("Set seed for Random Forest Classifier generation",
+                         "to enable reproducible behavior",
+                         "[Default %default]"))
+
+pargs <- optparse::add_option(pargs, c("--min_cells"),
+            type = "integer",
+            default = 3,
+            action = "store",
+            dest = "min_cells",
+            help = paste("Seurat.CreateSeuratObject, when filtering,",
+                         "include genes with detected expression",
+                         "in at least this many cells.",
+                         "[Default %default]"))
+
+pargs <- optparse::add_option(pargs, c("--min_genes"),
+            type = "integer",
+            default = 200,
+            action = "store",
+            dest = "min_genes",
+            help = paste("Seurat.CreateSeuratObject: when filtering,",
+                         "include genes where at least",
+                         "this many genes are detected.",
+                         "[Default %default]"))
+
+pargs <- optparse::add_option(pargs, c("--filter_genes_low_threshold"),
+            type = "double",
+            default = 200,
+            action = "store",
+            dest = "filt_genes_low",
+            help = paste("Seurat.FilterCells: low cutoff for number of genes.",
+                         "[Default %default]"))
+
+pargs <- optparse::add_option(pargs, c("--filter_genes_high_threshold"),
+            type = "double",
+            default = 2500,
+            action = "store",
+            dest = "filt_genes_high",
+            help = paste("Seurat.FilterCells: high cutoff for number of genes.",
+                         "[Default %default]"))
+
+pargs <- optparse::add_option(pargs, c("--filter_mito_low_threshold"),
+            type = "double",
+            default = -Inf,
+            action = "store",
+            dest = "filt_mito_low",
+            help = paste("Seurat.FilterCells: low cutoff for",
+                         "percent mitochondrial genes.",
+                         "[Default %default]"))
+
+pargs <- optparse::add_option(pargs, c("--filter_mito_high_threshold"),
+            type = "double",
+            default = 0.05,
+            action = "store",
+            dest = "filt_mito_high",
+            help = paste("Seurat.FilterCells: high cutoff for",
+                         "percent mitochondrial genes.",
+                         "[Default %default]"))
+
+pargs <- optparse::add_option(pargs, c("--x_low_cutoff"),
+            type = "double",
+            default = 0.0125,
+            action = "store",
+            dest = "x_low_cutoff",
+            help = paste("Seurat.FindVariableGenes: Bottom cutoff on x-axis",
+                         "for identifying variable genes.",
+                         "[Default %default]"))
+
+pargs <- optparse::add_option(pargs, c("--x_high_cutoff"),
+            type = "double",
+            default = 3,
+            action = "store",
+            dest = "x_high_cutoff",
+            help = paste("Seurat.FindVariableGenes: Top cutoff on x-axis",
+                         "for identifying variable genes.",
+                         "[Default %default]"))
+
+pargs <- optparse::add_option(pargs, c("--y_low_cutoff"),
+            type = "double",
+            default = 0.5,
+            action = "store",
+            dest = "y_low_cutoff",
+            help = paste("Seurat.FindVariableGenes: Bottom cutoff on y-axis",
+                         "for identifying variable genes.",
+                         "[Default %default]"))
+
+pargs <- optparse::add_option(pargs, c("--pcs_print"),
+            type = "character",
+            default = "1:5",
+            action = "store",
+            dest = "pcs_print",
+            help = paste("Seurat.PrintPCA: Principle components to",
+                         "print genes for.",
+                         "[Default %default]"))
+
+pargs <- optparse::add_option(pargs, c("--genes_print"),
+            type = "integer",
+            default = 5,
+            action = "store",
+            dest = "genes_print",
+            help = paste("Seurat.PrintPCA: Number of genes to print for",
+                         "each principle component.",
+                         "[Default %default]"))
+                         
+                         
+pargs <- optparse::add_option(pargs, c("--jackstraw_replicates"),
+            type = "integer",
+            default = 100,
+            action = "store",
+            dest = "jackstraw_repl",
+            help = paste("Seurat.jackstraw: Number of replicate samplings",
+                         "to perform for JackStraw.",
+                         "[Default %default]"))
+
+pargs <- optparse::add_option(pargs, c("--jackstraw_pcs"),
+            type = "character",
+            default = "1:12",
+            action = "store",
+            dest = "jackstraw_pcs",
+            help = paste("Seurat.jackstraw: Number of PCs to compute",
+                         "significance for. [Default %default]"))
+
+pargs <- optparse::add_option(pargs, c("--dims_use"),
+            type = "character",
+            default = "1:10",
+            action = "store",
+            dest = "dims_use",
+            help = paste("Seurat.FindClusters: A vector of dimensions",
+                         "to use for the SNN graph. [Default %default]"))
+
+
+pargs <- optparse::add_option(pargs, c("--resolution"),
+            type = "double",
+            default = 0.6,
+            action = "store",
+            dest = "resolution",
+            help = paste("Seurat.FindClusters: resolution parameter,",
+                         "use a value above(below) 1.0 if you want",
+                         "to obtain a larger(smaller) number of communities.",
+                         "[Default %default]"))
+
+pargs <- optparse::add_option(pargs, c("--logfc_threshold"),
+            type = "double",
+            default = 0.25,
+            action = "store",
+            dest = "logfc_threshold",
+            help = paste("Seurat.FindMarkers: Limit testing to genes",
+                         "with average of at least X-fold difference.",
+                         "Increasing logfc.thresholdspeeds up the function,",
+                         "but can miss weaker signals. [Default %default]"))
 
 #process user-submitted inputs and set defaults
 args_parsed <- optparse::parse_args(pargs, positional_arguments = TRUE)
@@ -383,8 +422,8 @@ logging::loginfo(paste("Checking input arguments", sep = "" ))
 args <- check_arguments(args)
 
 # setup to capture outputs
-pdf("plots.pdf")
-sink("output.txt", append = FALSE, split = TRUE)
+pdf(args$plotfile)
+sink(args$stdoutfile, append = FALSE, split = TRUE)
 
 logging::loginfo(paste("Reading in 10X data", sep = ""))
 tenX.data <- Read10X( data.dir = args$input_dir)
@@ -429,26 +468,35 @@ sink()
 data_obj <- find_all_markers(data_obj, args$logfc_threshold)
 
 #resume output capture
-sink("output.txt", append = TRUE, split = TRUE)
+sink(args$stdoutfile, append = TRUE, split = TRUE)
 
 # classify data
 logging::loginfo(paste("Generate random forest classifier", sep = ""))
 classifier <- classify_data(data_obj)
 
 logging::loginfo(paste("Output gene names for top markers",  sep = ""))
-output_gene_names(classifier, args$num_genes)
+output_gene_names(classifier, args$num_genes, args$outputfile)
 
-if (args$save_obj) {
-  logging::loginfo(paste("Saving final Seurat object as probe_selection.rds"))
-  saveRDS(data_obj, "probe_selection.rds")
+if (!is.null(args$save_obj)) {
+  logging::loginfo(paste("Saving final Seurat object as", args$save_obj))
+  saveRDS(data_obj, args$save_obj)
 }
+
+logging::loginfo(paste("R Session info, including Seurat version"))
+sessionInfo()
+
 
 logging::loginfo(paste("List of runtime variables (user inputs and defaults)"))
 report_runtime_variables(args)
 
-logging::loginfo(paste("Results in FINAL_LIST.tsv, plot.pdf and output.txt"))
+if (!is.null(args$save_obj)) {
+  logging::loginfo(paste("Results in", args$outputfile, args$save_obj,
+                       args$plotfile, "and", args$stdoutfile))
+} else {
+  logging::loginfo(paste("Results in", args$outputfile, args$plotfile, "and",
+                        args$stdoutfile))
+}
 
 #reset output redirection
 sink()
 dev.off()
-
