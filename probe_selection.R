@@ -48,11 +48,11 @@ check_arguments <- function(arguments){
 }
 
 
-classify_data <- function(seuratObj){
+classify_data <- function(seuratObj, seed){
 # Generate random forest classifier
   classifier_input_x <- t(seuratObj@data)
   classifier_input_y <- as.factor(as.numeric(seuratObj@ident))
-  set.seed(1)
+  set.seed(seed)
   trained_classifier <- randomForest(x = as.matrix(classifier_input_x),
                                     y = factor(classifier_input_y),
                                     importance = TRUE )
@@ -472,7 +472,7 @@ sink(args$stdoutfile, append = TRUE, split = TRUE)
 
 # classify data
 logging::loginfo(paste("Generate random forest classifier", sep = ""))
-classifier <- classify_data(data_obj)
+classifier <- classify_data(data_obj, args$seed)
 
 logging::loginfo(paste("Output gene names for top markers",  sep = ""))
 output_gene_names(classifier, args$num_genes, args$outputfile)
