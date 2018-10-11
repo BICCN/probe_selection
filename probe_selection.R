@@ -48,11 +48,11 @@ check_arguments <- function(arguments){
 }
 
 
-classify_data <- function(seuratObj){
+classify_data <- function(seuratObj, seed){
 # Generate random forest classifier
   classifier_input_x <- t(seuratObj@data)
   classifier_input_y <- as.factor(as.numeric(seuratObj@ident))
-  set.seed(1)
+  set.seed(seed)
   trained_classifier <- randomForest(x = as.matrix(classifier_input_x),
                                     y = factor(classifier_input_y),
                                     importance = TRUE )
@@ -176,12 +176,12 @@ find_clusters <- function(seuratObj, dims_use, resolution){
   return(seuratObj)
 }
 
-find_all_markers <- function(seuratObj, logfc_threshold){
+find_all_markers <- function(seuratObj, thresh_use){
 # find markers for every cluster compared to all remaining cells, report
 # only the positive ones
   seuratObj.markers <- FindAllMarkers(object = seuratObj, only.pos = TRUE,
                                       min.pct = 0.25,
-                                      thresh.use = logfc_threshold)
+                                      thresh.use = thresh_use)
   seuratObj.markers %>% group_by(cluster) %>% top_n(2, avg_logFC)
   return(seuratObj)
 }
@@ -405,14 +405,14 @@ pargs <- optparse::add_option(pargs, c("--resolution"),
                          "to obtain a larger(smaller) number of communities.",
                          "[Default %default]"))
 
-pargs <- optparse::add_option(pargs, c("--logfc_threshold"),
+pargs <- optparse::add_option(pargs, c("--thresh_use"),
             type = "double",
             default = 0.25,
             action = "store",
-            dest = "logfc_threshold",
+            dest = "thresh_use",
             help = paste("Seurat.FindMarkers: Limit testing to genes",
                          "with average of at least X-fold difference.",
-                         "Increasing logfc.thresholdspeeds up the function,",
+                         "Increasing thresh_use speeds up the function,",
                          "but can miss weaker signals. [Default %default]"))
 
 #process user-submitted inputs and set defaults
@@ -465,14 +465,14 @@ data_obj <- find_clusters(data_obj, args$dims_use, args$resolution)
 logging::loginfo(paste("Report all positive markers for each cluster"))
 #reset output redirection to avoid capturing progress meter output
 sink()
-data_obj <- find_all_markers(data_obj, args$logfc_threshold)
+data_obj <- find_all_markers(data_obj, args$thresh_use)
 
 #resume output capture
 sink(args$stdoutfile, append = TRUE, split = TRUE)
 
 # classify data
 logging::loginfo(paste("Generate random forest classifier", sep = ""))
-classifier <- classify_data(data_obj)
+classifier <- classify_data(data_obj, args$seed)
 
 logging::loginfo(paste("Output gene names for top markers",  sep = ""))
 output_gene_names(classifier, args$num_genes, args$outputfile)
